@@ -21,7 +21,7 @@ services:
       - "8000:8000"
     environment:
       - UV_NO_DEV=0
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/rempy
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/rempy
     depends_on:
       db:
         condition: service_healthy

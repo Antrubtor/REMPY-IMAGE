@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Backend FastAPI pour REMPY-IMAGE"
 requires-python = "==3.12.*"
 dependencies = [
+    "ImageIO==2.37.2",
     "fastapi[standard]==0.129.0",
-    "sqlalchemy[asyncio]>=2.0.0",
-    "asyncpg>=0.30.0",
+    "psycopg[binary]==3.3.3",
 ]
