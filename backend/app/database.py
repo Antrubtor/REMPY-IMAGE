@@ -56,26 +56,37 @@ def get_benchmark_if_exist(image_hash: str) -> tuple[Any, ...] | None:
         print("Erreur lors de la vérification du benchmark", error)
     return None
 
-def save_benchmark(image_hash: str, time: float) -> bool:
+def save_benchmark(image_hash: str, results: dict) -> bool:
     conn, cur = connect()
-    try:
+    #try:
+    cur.execute(
+        """
+        INSERT INTO benchmarks (image_hash, image_result)
+        VALUES (%s, %s)
+        """,
+        (image_hash, results.get("image_result"))
+    )
+    cur.execute("SELECT lastval()")
+    benchmark_id = cur.fetchone()["id"]
+    for benchmark in results.get("benchmarks", []):
+        print(benchmark)
         cur.execute(
             """
-            INSERT INTO benchmarks (image_hash, time)
-            VALUES (%s, %s)
+            INSERT INTO benchmarks_times (benchmark_id, time_python, time_numba)
+            VALUES (%s, %s, %s)
             """,
-            (image_hash, time)
+            (benchmark_id, benchmark.get("python_time"), benchmark.get("numba_time"))
         )
-        conn.commit()
-        return True
-    except Exception as error:
-        print("Erreur lors de la sauvegarde du benchmark", error)
-        return False
+    conn.commit()
+    return True
+    #except Exception as error:
+        #    print("Erreur lors de la sauvegarde du benchmark", error)
+    #     return False
 
 def get_all_benchmarks() -> list[dict] | None:
     conn, cur = connect()
     try:
-        cur.execute("SELECT * FROM benchmarks")
+        cur.execute("SELECT * FROM benchmarks JOIN benchmarks_times ON benchmarks.id = benchmarks_times.benchmark_id")
         return cur.fetchall()
     except Exception as error:
         print("Erreur lors de la récupération des benchmarks", error)

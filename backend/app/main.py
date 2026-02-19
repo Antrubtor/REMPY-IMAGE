@@ -1,6 +1,6 @@
 import io, time, hashlib
 from database import create_table, get_benchmark_if_exist, save_benchmark, get_all_benchmarks, delete_all_benchmarks
-from geodesic_distance import propagation
+from geodesic_distance import propagation, npropagation
 from imageio.v3 import imread
 from fastapi import FastAPI, UploadFile, File, HTTPException
 
@@ -9,8 +9,9 @@ app = FastAPI(title="REMPY-IMAGE API")
 create_table()
 
 
-@app.post("/benchmark")
-async def benchmark(image: UploadFile = File(...),
+@app.post("/benchmarks")
+async def benchmark(nb_tests: int,
+                    image: UploadFile = File(...),
                     mask: UploadFile = File()):
     if image.content_type not in {"image/jpeg", "image/png"}:
         raise HTTPException(status_code=400, detail=f"Uploadez seulement des images")
@@ -26,14 +27,27 @@ async def benchmark(image: UploadFile = File(...),
 
     image_data = imread(io.BytesIO(image_content))
     mask_data = imread(io.BytesIO(mask_content))
+    results = {"benchmarks": []}
+    for i in range(nb_tests):
+        start_time = time.time()
+        p = propagation(image_data, mask_data)
+        end_time = time.time()
 
-    start_time = time.time()
-    propagation(image_data, mask_data)
-    execution_time = time.time() - start_time
+        if i == 0:
+            results["image_result"] = p.tobytes()
 
-    if not save_benchmark(combined_hash, execution_time):
-        raise HTTPException(status_code=500, detail="Erreur lors de la sauvegarde du benchmark")
-    return { "execution_time": execution_time }
+        nstart_time = time.time()
+        npropagation(image_data, mask_data)
+        nend_time = time.time()
+
+        results["benchmarks"].append({
+            "python_time": end_time - start_time,
+            "numba_time": nend_time - nstart_time
+        })
+
+    #if not save_benchmark(combined_hash, results):
+    #    raise HTTPException(status_code=500, detail="Erreur lors de la sauvegarde du benchmark")
+    return results
 
 
 @app.get("/benchmarks")
