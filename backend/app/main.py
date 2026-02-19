@@ -16,6 +16,11 @@ create_table()
 async def run_benchmark(nb_tests: int,
                     image: UploadFile = File(...),
                     mask: UploadFile = File()):
+    """
+    Run nb_tests benchmark avec l'image et le masque
+    Si ces images et masque n'avaient pas été utilisées avant une ligne est rajouté dans la DB dans benchmarks
+    Sinon seulement des lignes sont rajoutées dans benchmarks_times pour les nouveaux benchmarks
+    """
     if image.content_type not in {"image/jpeg", "image/png"}:
         raise HTTPException(status_code=400, detail=f"Uploadez seulement des images")
 
@@ -53,6 +58,9 @@ async def run_benchmark(nb_tests: int,
 @app.post("/benchmark/hash")
 async def get_benchmark_id_with_hash(image: UploadFile = File(...),
                             mask: UploadFile = File()):
+    """
+    Récupère l'id du benchmark correspondant à l'image et au masque dans la DB
+    """
     if image.content_type not in {"image/jpeg", "image/png"}:
         raise HTTPException(status_code=400, detail=f"Uploadez seulement des images")
 
@@ -69,6 +77,9 @@ async def get_benchmark_id_with_hash(image: UploadFile = File(...),
 
 @app.get("/benchmark")
 async def get_benchmark_id(id: int):
+    """
+    Récupère le benchmark correspondant à l'id dans la DB
+    """
     benchmark = get_benchmark(id)
     if benchmark is None:
         raise HTTPException(status_code=500, detail="Erreur lors de la récupération du benchmark")
@@ -77,6 +88,9 @@ async def get_benchmark_id(id: int):
 
 @app.get("/benchmarks")
 async def get_benchmarks():
+    """
+    Récupère tous les benchmarks de la DB
+    """
     benchmarks = get_all_benchmarks()
     if benchmarks is None:
         raise HTTPException(status_code=500, detail="Erreur lors de la récupération des benchmarks")
@@ -86,10 +100,16 @@ async def get_benchmarks():
 
 @app.delete("/benchmark")
 async def delete_benchmark_id(id: int):
+    """
+    Supprime le benchmark correspondant à l'id dans la DB
+    """
     status = delete_benchmark(id)
     return { "deleted": status }
 
 @app.delete("/benchmarks")
 async def delete_benchmarks():
+    """S
+    upprime tous les benchmarks de la DB
+    """
     status =  delete_all_benchmarks()
     return { "deleted": status }
