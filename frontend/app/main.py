@@ -4,6 +4,9 @@ import json
 import numpy as np
 from PIL import Image
 from benchmark import plot_bar, plot_scatter, plot_image
+import io
+from PIL import Image
+
 
 st.set_page_config(page_title="REMPY-IMAGE", layout="wide")
 BACKEND_URL = "http://backend:8000"
@@ -18,7 +21,13 @@ nb_tests = st.sidebar.number_input("Tests", min_value=1, value=10)
 
 if image_file:
     image_bytes = image_file.getvalue()
-    st.sidebar.image(image_bytes, caption="Image", width=200)
+    image = Image.open(io.BytesIO(image_bytes)).convert('L')
+
+    image_pil = Image.open(io.BytesIO(image_file.getvalue())).convert('L')
+    image_file = io.BytesIO()
+    image_pil.save(image_file, format='JPEG', quality=95)
+
+    st.sidebar.image(image, caption="Image", width=200, clamp=True)
 if mask_file:
     mask_bytes = mask_file.getvalue()
     st.sidebar.image(mask_bytes, caption="Mask", width=200)
@@ -51,7 +60,7 @@ if st.sidebar.button("🚀 Start Benchmark", type="primary"):
             st.info("🆕 Running new benchmark...")
             resp_benchmark = requests.post(
                 f"{BACKEND_URL}/benchmarks/run?nb_tests={nb_tests}", 
-                files=files, timeout=60
+                files=files
             )
             if resp_benchmark.status_code == 200:
                 st.session_state.results = resp_benchmark.json()
@@ -83,7 +92,7 @@ if st.session_state.benchmark_exists:
             }
             resp_benchmark = requests.post(
                 f"{BACKEND_URL}/benchmarks/run?nb_tests={nb_tests}", 
-                files=files, timeout=60
+                files=files
             )
             if resp_benchmark.status_code == 200:
                 st.session_state.results = resp_benchmark.json()

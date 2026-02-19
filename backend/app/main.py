@@ -11,8 +11,8 @@ app = FastAPI(title="REMPY-IMAGE API")
 
 create_table()
 
-fake_image = np.zeros((2,2))
-fake_mask = np.zeros((2,2))
+fake_image = np.zeros((2,2), dtype=np.uint8)
+fake_mask = np.zeros((2,2), dtype=np.uint8)
 
 npropagation(fake_image, fake_mask)
 

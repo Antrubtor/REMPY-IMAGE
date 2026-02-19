@@ -29,8 +29,10 @@ def propagation(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
     D = np.full_like(img, 1e10, dtype=np.float64)
     seeds = np.argwhere(mask > 0)
     for seed in seeds:
-        D[tuple(seed)] = 0
-        q.push(0, tuple(seed))
+        l = seed[0]
+        c = seed[1]
+        D[l, c] = 0.0
+        q.push(0.0, (l, c))
     while not q.empty():
         p, (l, c) = q.pop()
         for dl in range(-1, 2):
