@@ -49,10 +49,12 @@ async def run_benchmark(nb_tests: int,
             "numba_time": nend_time - nstart_time
         })
 
-    if not save_benchmark(combined_hash, results):
+    if not save_benchmark(combined_hash, image_data.tolist(), mask_data.tolist(), results):
         raise HTTPException(status_code=500, detail="Erreur lors de la sauvegarde du benchmark")
 
     results["image_result"] = np.array([]).tolist() ##TODO remove
+    results["image"] = np.array([]).tolist() ##TODO remove
+    results["mask"] = np.array([]).tolist() ##TODO remove
     return results
 
 @app.post("/benchmark/hash")
@@ -84,6 +86,8 @@ async def get_benchmark_id(id: int):
     if benchmark is None:
         raise HTTPException(status_code=500, detail="Erreur lors de la récupération du benchmark")
     benchmark["image_result"] = np.array([]).tolist() ##TODO remove
+    benchmark["image"] = np.array([]).tolist() ##TODO remove
+    benchmark["mask"] = np.array([]).tolist() ##TODO remove
     return benchmark
 
 @app.get("/benchmarks")
@@ -96,6 +100,8 @@ async def get_benchmarks():
         raise HTTPException(status_code=500, detail="Erreur lors de la récupération des benchmarks")
     for benchmark in benchmarks["benchmarks"]:    ##TODO remove
         benchmark["image_result"] = np.array([]).tolist() ##TODO remove
+        benchmark["image"] = np.array([]).tolist() ##TODO remove
+        benchmark["mask"] = np.array([]).tolist() ##TODO remove
     return benchmarks
 
 @app.delete("/benchmark")

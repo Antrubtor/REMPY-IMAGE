@@ -21,6 +21,8 @@ def create_table() -> None:
                     CREATE TABLE IF NOT EXISTS benchmarks (
                         id SERIAL PRIMARY KEY,
                         image_hash VARCHAR(64) UNIQUE NOT NULL,
+                        image DOUBLE PRECISION[][] NOT NULL,
+                        mask DOUBLE PRECISION[][] NOT NULL,
                         image_result DOUBLE PRECISION[][] NOT NULL
                     )
                     """)
@@ -36,18 +38,18 @@ def create_table() -> None:
     except Exception as error:
         print("Erreur lors de la création de la table", error)
 
-def save_benchmark(image_hash: str, results: dict) -> bool:
+def save_benchmark(image_hash: str, image: list, mask: list, results: dict) -> bool:
     conn, cur = connect()
     try:
         benchmark_id = get_benchmark_id_with_hash_db(image_hash)
         if not benchmark_id:
             cur.execute(
                 """
-                INSERT INTO benchmarks (image_hash, image_result)
-                VALUES (%s, %s)
+                INSERT INTO benchmarks (image_hash, image, mask, image_result)
+                VALUES (%s, %s, %s, %s)
                 RETURNING id
                 """,
-                (image_hash, results.get("image_result"))
+                (image_hash, image, mask, results.get("image_result"))
             )
             benchmark_id = cur.fetchone()["id"]
 
