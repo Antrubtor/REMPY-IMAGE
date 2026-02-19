@@ -2,6 +2,7 @@ import json
 import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
+import streamlit as st
 
 
 def plot_bar(benchmarks: str) -> go.Figure:
@@ -12,7 +13,7 @@ def plot_bar(benchmarks: str) -> go.Figure:
     for benchmark in data:
         for i, time_data in enumerate(benchmark.get("benchmark_times", [])):
             all_times.append({
-                "id": benchmark.get("id", 0),
+                "id": i,
                 "python_time": time_data.get("python_time", 0),
                 "numba_time": time_data.get("numba_time", 0)
             })
@@ -49,7 +50,7 @@ def plot_scatter(benchmarks: str) -> go.Figure:
     for benchmark in data:
         for i, time_data in enumerate(benchmark.get("benchmark_times", [])):
             all_times.append({
-                "id": benchmark.get("id", 0),
+                "id": i,
                 "python_time": time_data.get("python_time", 0),
                 "numba_time": time_data.get("numba_time", 0)
             })

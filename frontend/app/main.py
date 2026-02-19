@@ -45,7 +45,6 @@ if st.sidebar.button("🚀 Start Benchmark", type="primary"):
                     resp_results = requests.get(f"{BACKEND_URL}/benchmark?id={benchmark_id}")
                     if resp_results.status_code == 200:
                         results = resp_results.json()
-                        st.json(results)
                     else:
                         raise Exception(f"Erreur récupération: {resp_results.text}")
                         
@@ -59,7 +58,6 @@ if st.sidebar.button("🚀 Start Benchmark", type="primary"):
                         raise Exception(f"Erreur backend: {resp_benchmark.text}")
                     
                     results = resp_benchmark.json()
-                    st.json(results)
 
                 if "benchmarks" in results and results['benchmarks']:
                     python_times = [t['python_time'] for b in results['benchmarks'] for t in b.get('benchmark_times', [])]
