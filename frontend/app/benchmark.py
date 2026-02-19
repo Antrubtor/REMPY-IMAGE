@@ -6,7 +6,7 @@ import numpy as np
 
 def plot_bar(benchmarks: str) -> go.Figure:
     data = json.loads(benchmarks).get("benchmarks", [])
-    
+
     # Flatten tous benchmarks_times de tous items
     all_times = []
     for benchmark in data:
@@ -42,8 +42,8 @@ def plot_bar(benchmarks: str) -> go.Figure:
 
 
 def plot_scatter(benchmarks: str) -> go.Figure:
-    data = json.loads(benchmarks).get("benchmark", [])
-    
+    data = json.loads(benchmarks).get("benchmarks", [])
+
     # Même flatten
     all_times = []
     for benchmark in data:
@@ -102,5 +102,5 @@ def plot_image(image_json: str) -> go.Figure:
             return fig
     except Exception as e:
         print(f"Erreur plot_image: {e}")
-    
+
     return go.Figure().add_annotation(text="Pas d'image_result")

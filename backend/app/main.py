@@ -31,31 +31,33 @@ async def run_benchmark(nb_tests: int,
 
     image_data = imread(io.BytesIO(image_content))
     mask_data = imread(io.BytesIO(mask_content))
-    results = {"benchmarks": []}
+    benchmark_times = []
+    image_result = None
     for i in range(nb_tests):
         start_time = time.time()
         p = propagation(image_data, mask_data)
         end_time = time.time()
 
         if i == 0:
-            results["image_result"] = p.tolist()
+            image_result = p.tolist()
 
         nstart_time = time.time()
         npropagation(image_data, mask_data)
         nend_time = time.time()
 
-        results["benchmarks"].append({
+        benchmark_times.append({
             "python_time": end_time - start_time,
             "numba_time": nend_time - nstart_time
         })
 
-    if not save_benchmark(combined_hash, image_data.tolist(), mask_data.tolist(), results):
+    save_data = {"benchmarks": benchmark_times, "image_result": image_result}
+    if not save_benchmark(combined_hash, image_data.tolist(), mask_data.tolist(), save_data):
         raise HTTPException(status_code=500, detail="Erreur lors de la sauvegarde du benchmark")
 
-    results["image_result"] = np.array([]).tolist() ##TODO remove
-    results["image"] = np.array([]).tolist() ##TODO remove
-    results["mask"] = np.array([]).tolist() ##TODO remove
-    return results
+    return {"benchmarks": [{
+        "image_result": image_result,
+        "benchmark_times": benchmark_times
+    }]}
 
 @app.post("/benchmark/hash")
 async def get_benchmark_id_with_hash(image: UploadFile = File(...),
@@ -85,10 +87,12 @@ async def get_benchmark_id(id: int):
     benchmark = get_benchmark(id)
     if benchmark is None:
         raise HTTPException(status_code=500, detail="Erreur lors de la récupération du benchmark")
-    benchmark["image_result"] = np.array([]).tolist() ##TODO remove
-    benchmark["image"] = np.array([]).tolist() ##TODO remove
-    benchmark["mask"] = np.array([]).tolist() ##TODO remove
-    return benchmark
+
+    return {"benchmarks": [{
+        "id": benchmark.get("id"),
+        "image_result": benchmark.get("image_result", []),
+        "benchmark_times": benchmark.get("benchmark_times", [])
+    }]}
 
 @app.get("/benchmarks")
 async def get_benchmarks():
@@ -98,11 +102,12 @@ async def get_benchmarks():
     benchmarks = get_all_benchmarks()
     if benchmarks is None:
         raise HTTPException(status_code=500, detail="Erreur lors de la récupération des benchmarks")
-    for benchmark in benchmarks["benchmarks"]:    ##TODO remove
-        benchmark["image_result"] = np.array([]).tolist() ##TODO remove
-        benchmark["image"] = np.array([]).tolist() ##TODO remove
-        benchmark["mask"] = np.array([]).tolist() ##TODO remove
-    return benchmarks
+
+    return {"benchmarks": [{
+        "id": b.get("id"),
+        "image_result": b.get("image_result", []),
+        "benchmark_times": b.get("benchmark_times", [])
+    } for b in benchmarks["benchmarks"]]}
 
 @app.delete("/benchmark")
 async def delete_benchmark_id(id: int):

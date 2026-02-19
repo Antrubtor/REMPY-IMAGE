@@ -45,7 +45,7 @@ if st.sidebar.button("🚀 Start Benchmark", type="primary"):
                     resp_results = requests.get(f"{BACKEND_URL}/benchmark?id={benchmark_id}")
                     if resp_results.status_code == 200:
                         results = resp_results.json()
-                        st.json(f"1| {results}")
+                        st.json(results)
                     else:
                         raise Exception(f"Erreur récupération: {resp_results.text}")
                         
@@ -59,12 +59,12 @@ if st.sidebar.button("🚀 Start Benchmark", type="primary"):
                         raise Exception(f"Erreur backend: {resp_benchmark.text}")
                     
                     results = resp_benchmark.json()
-                    st.json(f"2| {results}")
+                    st.json(results)
 
                 if "benchmarks" in results and results['benchmarks']:
-                    python_times = [b['python_time'] for b in results['benchmarks']]
-                    numba_times = [b['numba_time'] for b in results['benchmarks']]
-                    
+                    python_times = [t['python_time'] for b in results['benchmarks'] for t in b.get('benchmark_times', [])]
+                    numba_times = [t['numba_time'] for b in results['benchmarks'] for t in b.get('benchmark_times', [])]
+
                     col1, col2 = st.columns(2)
                     with col1:
                         st.metric("Python", f"{np.mean(python_times):.3f}s")

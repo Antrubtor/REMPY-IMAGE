@@ -30,7 +30,7 @@ def create_table() -> None:
                     CREATE TABLE IF NOT EXISTS benchmarks_times (
                         id SERIAL PRIMARY KEY,
                         benchmark_id INTEGER NOT NULL REFERENCES benchmarks(id) ON DELETE CASCADE,
-                        python_tine DOUBLE PRECISION NOT NULL,
+                        python_time DOUBLE PRECISION NOT NULL,
                         numba_time DOUBLE PRECISION NOT NULL
                     )
                     """)
