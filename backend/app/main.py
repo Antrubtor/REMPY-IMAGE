@@ -34,7 +34,7 @@ async def benchmark(nb_tests: int,
         end_time = time.time()
 
         if i == 0:
-            results["image_result"] = p.tobytes()
+            results["image_result"] = p.tolist()
 
         nstart_time = time.time()
         npropagation(image_data, mask_data)
