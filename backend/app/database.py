@@ -30,8 +30,8 @@ def create_table() -> None:
                     CREATE TABLE IF NOT EXISTS benchmarks_times (
                         id SERIAL PRIMARY KEY,
                         benchmark_id INTEGER NOT NULL REFERENCES benchmarks(id) ON DELETE CASCADE,
-                        time_python DOUBLE PRECISION NOT NULL,
-                        time_numba DOUBLE PRECISION NOT NULL
+                        python_tine DOUBLE PRECISION NOT NULL,
+                        numba_time DOUBLE PRECISION NOT NULL
                     )
                     """)
         conn.commit()
@@ -56,7 +56,7 @@ def save_benchmark(image_hash: str, image: list, mask: list, results: dict) -> b
         for benchmark in results.get("benchmarks", []):
             cur.execute(
                 """
-                INSERT INTO benchmarks_times (benchmark_id, time_python, time_numba)
+                INSERT INTO benchmarks_times (benchmark_id, python_time, numba_time)
                 VALUES (%s, %s, %s)
                 """,
                 (benchmark_id, benchmark.get("python_time"), benchmark.get("numba_time"))
@@ -76,7 +76,7 @@ def get_benchmark(id: int) -> tuple[Any, ...] | None:
         if not benchmark_infos:
             return None
         print(benchmark_infos)
-        cur.execute("SELECT time_python, time_numba FROM benchmarks_times WHERE benchmark_id = %s", (id,))
+        cur.execute("SELECT python_time, numba_time FROM benchmarks_times WHERE benchmark_id = %s", (id,))
         benchmark_infos["benchmark_times"] = cur.fetchall()
         return benchmark_infos
     except Exception as error:
@@ -92,7 +92,7 @@ def get_all_benchmarks() -> dict[str, list[Any]] | None:
 
         results = []
         for benchmark in benchmarks:
-            cur.execute("SELECT time_python, time_numba FROM benchmarks_times WHERE benchmark_id = %s", (benchmark["id"],))
+            cur.execute("SELECT python_time, numba_time FROM benchmarks_times WHERE benchmark_id = %s", (benchmark["id"],))
             benchmark["benchmark_times"] = cur.fetchall()
             results.append(benchmark)
         return { "benchmarks": results }
