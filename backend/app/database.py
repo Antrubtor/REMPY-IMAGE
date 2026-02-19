@@ -21,9 +21,18 @@ def create_table() -> None:
             CREATE TABLE IF NOT EXISTS benchmarks (
                 id SERIAL PRIMARY KEY,
                 image_hash VARCHAR(64) UNIQUE NOT NULL,
-                time DOUBLE PRECISION NOT NULL
+                image_result BYTEA
             )
         """)
+
+         cur.execute("""
+             CREATE TABLE IF NOT EXISTS benchmarks_times (
+                id SERIAL PRIMARY KEY,
+                benchmark_id INTEGER NOT NULL REFERENCES benchmarks(id) ON DELETE CASCADE,
+                time_python DOUBLE PRECISION NOT NULL,
+                time_numba DOUBLE PRECISION NOT NULL
+             )
+            """)
     except Exception as error:
         print("Erreur lors de la création de la table", error)
     conn.commit()
@@ -47,8 +56,6 @@ def get_benchmark_if_exist(image_hash: str) -> tuple[Any, ...] | None:
         print("Erreur lors de la vérification du benchmark", error)
     return None
 
-
-
 def save_benchmark(image_hash: str, time: float) -> bool:
     conn, cur = connect()
     try:
@@ -64,7 +71,6 @@ def save_benchmark(image_hash: str, time: float) -> bool:
     except Exception as error:
         print("Erreur lors de la sauvegarde du benchmark", error)
         return False
-
 
 def get_all_benchmarks() -> list[dict] | None:
     conn, cur = connect()

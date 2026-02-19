@@ -5,6 +5,7 @@ description = "Backend FastAPI pour REMPY-IMAGE"
 requires-python = "==3.12.*"
 dependencies = [
     "ImageIO==2.37.2",
+    "numba==0.63.1",
     "fastapi[standard]==0.129.0",
     "psycopg[binary]==3.3.3",
 ]
