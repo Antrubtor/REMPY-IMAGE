@@ -13,7 +13,7 @@ def plot_bar(benchmarks: str) -> go.Figure:
     for benchmark in data:
         for i, time_data in enumerate(benchmark.get("benchmark_times", [])):
             all_times.append({
-                "id": i,
+                "id": i + 1,
                 "python_time": time_data.get("python_time", 0),
                 "numba_time": time_data.get("numba_time", 0)
             })
@@ -50,7 +50,7 @@ def plot_scatter(benchmarks: str) -> go.Figure:
     for benchmark in data:
         for i, time_data in enumerate(benchmark.get("benchmark_times", [])):
             all_times.append({
-                "id": i,
+                "id": i + 1,
                 "python_time": time_data.get("python_time", 0),
                 "numba_time": time_data.get("numba_time", 0)
             })

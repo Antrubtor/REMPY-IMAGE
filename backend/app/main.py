@@ -11,6 +11,10 @@ app = FastAPI(title="REMPY-IMAGE API")
 
 create_table()
 
+fake_image = np.zeros((2,2))
+fake_mask = np.zeros((2,2))
+
+npropagation(fake_image, fake_mask)
 
 @app.post("/benchmarks/run")
 async def run_benchmark(nb_tests: int,
