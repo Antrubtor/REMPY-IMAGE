@@ -42,4 +42,11 @@ ENTRYPOINT []
 USER nonroot
 
 # Run the Dash application
-CMD ["uv", "run", "python", "app/main.py"]
+#CMD ["uv", "run", "python", "app/main.py"]
+CMD ["streamlit", "run", "app/main.py", \
+     "--server.port=8050", \
+     "--server.address=0.0.0.0", \
+     "--server.headless=true", \
+     "--server.enableCORS=false", \
+     "--server.enableXsrfProtection=false", \
+     "--browser.gatherUsageStats=false"]
