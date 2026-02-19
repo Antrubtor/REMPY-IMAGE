@@ -54,9 +54,15 @@ async def run_benchmark(nb_tests: int,
     if not save_benchmark(combined_hash, image_data.tolist(), mask_data.tolist(), save_data):
         raise HTTPException(status_code=500, detail="Erreur lors de la sauvegarde du benchmark")
 
+    benchmark_id = get_benchmark_id_with_hash_db(combined_hash)
+    benchmark = get_benchmark(benchmark_id)
+    if benchmark is None:
+        raise HTTPException(status_code=500, detail="Erreur lors de la récupération du benchmark")
+
     return {"benchmarks": [{
-        "image_result": image_result,
-        "benchmark_times": benchmark_times
+        "id": benchmark.get("id"),
+        "image_result": benchmark.get("image_result", []),
+        "benchmark_times": benchmark.get("benchmark_times", [])
     }]}
 
 @app.post("/benchmark/hash")
