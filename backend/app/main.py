@@ -81,8 +81,8 @@ async def run_benchmark(nb_tests: int,
 @app.post("/benchmarks/run_by_id")
 async def run_benchmark_by_id(benchmark_id: int, nb_tests: int = 10):
     """
-    Run nb_tests benchmark en utilisant l'image et le masque stockés en DB pour le benchmark_id donné.
-    Utilisé quand on vient de l'historique (pas d'upload de fichiers).
+    Run nb_tests benchmark en utilisant l'image et le masque stockés en DB pour le benchmark_id donné
+    Utilisé quand on vient de l'historique (pas d'upload de fichiers)
     """
     existing = get_benchmark(benchmark_id)
     if existing is None:
@@ -188,8 +188,8 @@ async def delete_benchmark_id(id: int):
 
 @app.delete("/benchmarks")
 async def delete_benchmarks():
-    """S
-    upprime tous les benchmarks de la DB
+    """
+    Supprime tous les benchmarks de la DB
     """
     status =  delete_all_benchmarks()
     return { "deleted": status }
