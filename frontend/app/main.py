@@ -13,6 +13,20 @@ def decode_array(b64str: str) -> np.ndarray:
     b = base64.b64decode(b64str)
     return np.load(io.BytesIO(b))
 
+def optimize_image_bytes(file_bytes: bytes, target_format: str = 'JPEG') -> bytes:
+    try:
+        img = Image.open(io.BytesIO(file_bytes))
+        if img.mode == 'L' and img.format == target_format:
+            return file_bytes
+            
+        img = img.convert('L')
+        out_io = io.BytesIO()
+        kwargs = {'quality': 95} if target_format == 'JPEG' else {}
+        img.save(out_io, format=target_format, **kwargs)
+        return out_io.getvalue()
+    except Exception:
+        return file_bytes
+
 st.set_page_config(page_title="REMPY-IMAGE", layout="wide")
 BACKEND_URL = "http://backend:8000"
 
@@ -83,16 +97,18 @@ if st.session_state.page == "Accueil":
     nb_tests = st.sidebar.number_input("Tests", min_value=1, value=10, key="nb_tests")
     
     if image_file:
-        image_bytes = image_file.getvalue()
-        image = Image.open(io.BytesIO(image_bytes)).convert('L')
-        image_pil = Image.open(io.BytesIO(image_file.getvalue())).convert('L')
-        image_file = io.BytesIO()
-        image_pil.save(image_file, format='JPEG', quality=95)
-        st.sidebar.image(image, caption="Image", width=200, clamp=True)
+        raw_bytes = image_file.getvalue()
+        opt_bytes = optimize_image_bytes(raw_bytes, target_format='JPEG')
+        if opt_bytes != raw_bytes:
+            image_file = io.BytesIO(opt_bytes)
+        st.sidebar.image(opt_bytes, caption="Image", width=200, clamp=True)
     
     if mask_file:
-        mask_bytes = mask_file.getvalue()
-        st.sidebar.image(mask_bytes, caption="Mask", width=200)
+        raw_bytes = mask_file.getvalue()
+        opt_bytes = optimize_image_bytes(raw_bytes, target_format='PNG')
+        if opt_bytes != raw_bytes:
+            mask_file = io.BytesIO(opt_bytes)
+        st.sidebar.image(opt_bytes, caption="Mask", width=200)
     
     if st.sidebar.button("Start Benchmark", type="primary"):
         if st.session_state.benchmark_exists:
@@ -106,11 +122,8 @@ if st.session_state.page == "Accueil":
             
             image_bytes = image_file.getvalue()
             
-            # Process mask the same way as image to ensure Grayscale ('L')
-            mask_pil = Image.open(io.BytesIO(mask_file.getvalue())).convert('L')
-            mask_proc_io = io.BytesIO()
-            mask_pil.save(mask_proc_io, format='PNG')
-            mask_bytes = mask_proc_io.getvalue()
+            image_bytes = image_file.getvalue()
+            mask_bytes = mask_file.getvalue()
             
             files = {
                 'image': ('image.jpg', image_bytes, 'image/jpeg'),
@@ -149,11 +162,8 @@ if st.session_state.page == "Accueil":
                 if image_file and mask_file:
                     image_bytes = image_file.getvalue()
                     
-                    # Process mask the same way as image to ensure Grayscale ('L')
-                    mask_pil = Image.open(io.BytesIO(mask_file.getvalue())).convert('L')
-                    mask_proc_io = io.BytesIO()
-                    mask_pil.save(mask_proc_io, format='PNG')
-                    mask_bytes = mask_proc_io.getvalue()
+                    image_bytes = image_file.getvalue()
+                    mask_bytes = mask_file.getvalue()
                     
                     files = {
                         'image': ('image.jpg', image_bytes, 'image/jpeg'),
