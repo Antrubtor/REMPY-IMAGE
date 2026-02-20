@@ -115,6 +115,9 @@ async def get_benchmarks():
 
     return {"benchmarks": [{
         "id": b.get("id"),
+        "image_hash": b.get("image_hash", ""),
+        "image": b.get("image", []),
+        "mask": b.get("mask", []),
         "image_result": b.get("image_result", []),
         "benchmark_times": b.get("benchmark_times", [])
     } for b in benchmarks["benchmarks"]]}

@@ -9,21 +9,21 @@ import io
 st.set_page_config(page_title="REMPY-IMAGE", layout="wide")
 BACKEND_URL = "http://backend:8000"
 
-# État de navigation global
+# Global navigation state
 if 'page' not in st.session_state:
     st.session_state.page = "Accueil"
 
 # Sidebar Navigation
-st.sidebar.title("📱 Navigation")
-if st.sidebar.button("🏠 Accueil", use_container_width=True):
+st.sidebar.title("Navigation")
+if st.sidebar.button("Home", use_container_width=True):
     st.session_state.page = "Accueil"
     st.rerun()
 
-if st.sidebar.button("📜 Historique", use_container_width=True):
+if st.sidebar.button("History", use_container_width=True):
     st.session_state.page = "Historique"
     st.rerun()
 
-# Initialisation des états
+# State initialization
 if 'benchmark_exists' not in st.session_state:
     st.session_state.benchmark_exists = False
 if 'benchmark_id' not in st.session_state:
@@ -32,13 +32,15 @@ if 'results' not in st.session_state:
     st.session_state.results = None
 if 'show_results' not in st.session_state:
     st.session_state.show_results = False
+if 'loading' not in st.session_state:
+    st.session_state.loading = False
 
-# Page Accueil
+# Home Page
 if st.session_state.page == "Accueil":
-    st.title("🔥 REMPY-IMAGE")
-    st.markdown("Frontend Streamlit - Geodesic Distance Transform")
+    st.title("REMPY-IMAGE")
+    st.markdown("Geodesic Distance Transform")
     
-    st.sidebar.header("📁 Uploads")
+    st.sidebar.header("Uploads")
     image_file = st.sidebar.file_uploader("Image (JPEG/PNG)", type=['jpeg', 'png'], key="image_uploader")
     mask_file = st.sidebar.file_uploader("Mask (PNG)", type=['png'], key="mask_uploader")
     nb_tests = st.sidebar.number_input("Tests", min_value=1, value=10, key="nb_tests")
@@ -47,15 +49,15 @@ if st.session_state.page == "Accueil":
         image_bytes = image_file.getvalue()
         image = Image.open(io.BytesIO(image_bytes)).convert('L')
         image_pil = Image.open(io.BytesIO(image_file.getvalue())).convert('L')
-        image_file_bytes = io.BytesIO()
-        image_pil.save(image_file_bytes, format='JPEG', quality=95)
+        image_file = io.BytesIO()
+        image_pil.save(image_file, format='JPEG', quality=95)
         st.sidebar.image(image, caption="Image", width=200, clamp=True)
     
     if mask_file:
         mask_bytes = mask_file.getvalue()
         st.sidebar.image(mask_bytes, caption="Mask", width=200)
     
-    if st.sidebar.button("🚀 Start Benchmark", type="primary"):
+    if st.sidebar.button("Start Benchmark", type="primary"):
         if image_file and mask_file:
             st.session_state.show_results = False
             st.session_state.benchmark_exists = False
@@ -67,19 +69,20 @@ if st.session_state.page == "Accueil":
                 'mask': ('mask.png', mask_bytes, 'image/png')
             }
             
-            resp_hash = requests.post(f"{BACKEND_URL}/benchmark/hash", files=files, timeout=30)
+            with st.spinner("Checking hash..."):
+                resp_hash = requests.post(f"{BACKEND_URL}/benchmark/hash", files=files, timeout=30)
             
             if resp_hash.status_code == 200:
                 st.session_state.benchmark_exists = True
                 st.session_state.benchmark_id = resp_hash.json()["benchmark_id"]
-                st.success("✅ Benchmark found in database!")
+                st.rerun()
             else:
                 st.session_state.benchmark_exists = False
-                st.info("🆕 Running new benchmark...")
-                resp_benchmark = requests.post(
-                    f"{BACKEND_URL}/benchmarks/run?nb_tests={nb_tests}",
-                    files=files
-                )
+                with st.spinner("Running benchmark..."):
+                    resp_benchmark = requests.post(
+                        f"{BACKEND_URL}/benchmarks/run?nb_tests={nb_tests}",
+                        files=files
+                    )
                 if resp_benchmark.status_code == 200:
                     st.session_state.results = resp_benchmark.json()
                     st.session_state.show_results = True
@@ -88,20 +91,28 @@ if st.session_state.page == "Accueil":
     
     if st.session_state.benchmark_exists:
         st.markdown("---")
-        st.header("⚠️ Existing Benchmark")
-        st.info(f"Benchmark ID: {st.session_state.benchmark_id}")
+        st.header("Existing Benchmark Found")
         
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("📈 View existing results"):
-                resp_results = requests.get(f"{BACKEND_URL}/benchmark?id={st.session_state.benchmark_id}")
-                if resp_results.status_code == 200:
-                    st.session_state.results = resp_results.json()
-                    st.session_state.show_results = True
-                    st.session_state.benchmark_exists = False
+        if st.session_state.loading:
+            st.spinner("Loading...")
+        else:
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("View existing results"):
+                    st.session_state.loading = True
                     st.rerun()
-        with col2:
-            if st.button("➕ Add more runs"):
+            with col2:
+                if st.button("Add more runs"):
+                    st.session_state.loading = True
+                    st.session_state._action = "add_runs"
+                    st.rerun()
+    
+    # Handle deferred loading actions
+    if st.session_state.loading and st.session_state.benchmark_exists:
+        action = st.session_state.get('_action', 'view')
+        
+        if action == "add_runs":
+            with st.spinner("Adding runs..."):
                 image_bytes = image_file.getvalue()
                 mask_bytes = mask_file.getvalue()
                 files = {
@@ -112,16 +123,28 @@ if st.session_state.page == "Accueil":
                     f"{BACKEND_URL}/benchmarks/run?nb_tests={nb_tests}",
                     files=files
                 )
-                if resp_benchmark.status_code == 200:
-                    st.session_state.results = resp_benchmark.json()
-                    st.session_state.show_results = True
-                    st.session_state.benchmark_exists = False
-                    st.rerun()
+            if resp_benchmark.status_code == 200:
+                st.session_state.results = resp_benchmark.json()
+                st.session_state.show_results = True
+                st.session_state.benchmark_exists = False
+                st.session_state.loading = False
+                st.session_state._action = None
+                st.rerun()
+        else:
+            with st.spinner("Loading results..."):
+                resp_results = requests.get(f"{BACKEND_URL}/benchmark?id={st.session_state.benchmark_id}")
+            if resp_results.status_code == 200:
+                st.session_state.results = resp_results.json()
+                st.session_state.show_results = True
+                st.session_state.benchmark_exists = False
+                st.session_state.loading = False
+                st.session_state._action = None
+                st.rerun()
     
-    # Affichage des résultats
+    # Results display
     if st.session_state.get('show_results') and st.session_state.get('results'):
         st.markdown("---")
-        st.header("📊 Results")
+        st.header("Results")
         
         results = st.session_state.results
         
@@ -153,7 +176,7 @@ if st.session_state.page == "Accueil":
                 st.metric("Numba Min/Max", f"{np.min(numba_times):.3f}s / {np.max(numba_times):.3f}s")
                 st.metric("Numba Std", f"{np.std(numba_times):.3f}s")
             with col3:
-                st.metric("🚀 Speedup Mean", f"{speedup_mean:.2f}x")
+                st.metric("Speedup Mean", f"{speedup_mean:.2f}x")
                 st.metric("Speedup Min/Max", f"{speedup_min:.2f}x - {speedup_max:.2f}x")
                 st.metric("Speedup Std", f"{speedup_std:.2f}")
             
@@ -167,78 +190,98 @@ if st.session_state.page == "Accueil":
         else:
             st.warning("No benchmark data")
 
-# Page Historique
+# History Page
 elif st.session_state.page == "Historique":
-    st.title("📜 Historique des Benchmarks")
-    st.markdown("Toutes les combinaisons image + mask déjà utilisées")
-    
-    # Récupération de tous les benchmarks
+    st.title("Benchmark History")
+    st.markdown("All image + mask combinations previously benchmarked")
+
     try:
-        resp_benchmarks = requests.get(f"{BACKEND_URL}/benchmarks")
+        with st.spinner("Loading history..."):
+            resp_benchmarks = requests.get(f"{BACKEND_URL}/benchmarks")
         if resp_benchmarks.status_code == 200:
             all_benchmarks = resp_benchmarks.json()["benchmarks"]
-            
+
             if all_benchmarks:
-                # Affichage en grille 3 colonnes
-                cols = st.columns(3)
+                cols = st.columns(3, gap="medium")
                 for idx, benchmark in enumerate(all_benchmarks):
                     col_idx = idx % 3
                     with cols[col_idx]:
-                        st.markdown("---")
-                        st.markdown(f"**Benchmark ID:** `{benchmark['id']}`")
-                        
-                        # Images
-                        col_img1, col_img2 = st.columns(2)
-                        with col_img1:
-                            if benchmark['image_result']:
-                                # Affichage de la première image résultat comme aperçu
-                                img_data = benchmark['image_result'][0]
-                                st.image(img_data, caption="Image", use_column_width=True)
-                        with col_img2:
-                            st.info("Mask associé")
-                            st.caption("Disponible dans les résultats")
-                        
-                        # Boutons d'action
-                        col_btn1, col_btn2 = st.columns(2)
-                        with col_btn1:
-                            if st.button(f"📈 View Results\n{benchmark['id'][:8]}...", key=f"view_{benchmark['id']}"):
-                                resp_results = requests.get(f"{BACKEND_URL}/benchmark?id={benchmark['id']}")
-                                if resp_results.status_code == 200:
-                                    st.session_state.results = resp_results.json()
-                                    st.session_state.show_results = True
-                                    st.session_state.benchmark_id = benchmark['id']
-                                    st.session_state.page = "Accueil"  # Retour à l'accueil pour voir les résultats
-                                    st.rerun()
-                        
-                        with col_btn2:
-                            if st.button(f"🔄 New Runs\n{benchmark['id'][:8]}...", key=f"rerun_{benchmark['id']}"):
-                                # Demander nb_tests pour les nouveaux runs
-                                with st.expander("Configurer les nouveaux runs", expanded=False):
-                                    new_nb_tests = st.number_input("Nombre de tests", min_value=1, value=10, key=f"nb_tests_{benchmark['id']}")
-                                
-                                if st.button(f"🚀 Lancer {new_nb_tests} runs", key=f"start_rerun_{benchmark['id']}"):
-                                    # Les fichiers image/mask ne sont pas disponibles directement, mais on peut refaire avec le hash
-                                    resp_benchmark = requests.post(
-                                        f"{BACKEND_URL}/benchmarks/run?nb_tests={new_nb_tests}&benchmark_id={benchmark['id']}"
-                                    )
-                                    if resp_benchmark.status_code == 200:
-                                        st.session_state.results = resp_benchmark.json()
+                        benchmark_id = benchmark.get("id", "?")
+                        image_hash = benchmark.get("image_hash", "")
+                        hash_label = image_hash[:12] + "..." if len(image_hash) > 12 else image_hash
+
+                        with st.container(border=True):
+                            st.subheader(f"Benchmark #{benchmark_id}")
+
+                            # Render image and mask thumbnails side by side
+                            col_img, col_mask = st.columns(2)
+                            with col_img:
+                                img_data = benchmark.get("image", [])
+                                if img_data:
+                                    try:
+                                        img_array = np.array(img_data, dtype=np.float64)
+                                        if img_array.max() > 0:
+                                            img_array = (img_array / img_array.max() * 255).astype(np.uint8)
+                                        else:
+                                            img_array = img_array.astype(np.uint8)
+                                        pil_img = Image.fromarray(img_array, mode='L')
+                                        st.image(pil_img, caption="Image", use_container_width=True)
+                                    except Exception:
+                                        st.caption("Image unavailable")
+                                else:
+                                    st.caption("No image")
+                            with col_mask:
+                                mask_data = benchmark.get("mask", [])
+                                if mask_data:
+                                    try:
+                                        mask_array = np.array(mask_data, dtype=np.float64)
+                                        if mask_array.max() > 0:
+                                            mask_array = (mask_array / mask_array.max() * 255).astype(np.uint8)
+                                        else:
+                                            mask_array = mask_array.astype(np.uint8)
+                                        pil_mask = Image.fromarray(mask_array, mode='L')
+                                        st.image(pil_mask, caption="Mask", use_container_width=True)
+                                    except Exception:
+                                        st.caption("Mask unavailable")
+                                else:
+                                    st.caption("No mask")
+
+                            # Hash label
+                            st.caption(f"Hash {hash_label}")
+
+                            # Action buttons
+                            col_btn1, col_btn2 = st.columns(2)
+                            with col_btn1:
+                                if st.button("View Results", key=f"view_{benchmark_id}", use_container_width=True):
+                                    with st.spinner("Loading results..."):
+                                        resp_results = requests.get(f"{BACKEND_URL}/benchmark?id={benchmark_id}")
+                                    if resp_results.status_code == 200:
+                                        st.session_state.results = resp_results.json()
                                         st.session_state.show_results = True
-                                        st.session_state.benchmark_id = benchmark['id']
+                                        st.session_state.benchmark_id = benchmark_id
                                         st.session_state.page = "Accueil"
                                         st.rerun()
-                        st.markdown("---")
+                                    else:
+                                        st.error("Failed to load results")
+                            with col_btn2:
+                                if st.button("Run More Tests", key=f"rerun_{benchmark_id}", use_container_width=True):
+                                    st.session_state.page = "Accueil"
+                                    st.session_state.benchmark_exists = True
+                                    st.session_state.benchmark_id = benchmark_id
+                                    st.session_state.show_results = False
+                                    st.rerun()
+
+                            # Delete button
+                            if st.button("Delete", key=f"delete_{benchmark_id}", use_container_width=True):
+                                with st.spinner("Deleting benchmark..."):
+                                    resp_delete = requests.delete(f"{BACKEND_URL}/benchmark?id={benchmark_id}")
+                                if resp_delete.status_code == 200:
+                                    st.rerun()
+                                else:
+                                    st.error("Failed to delete benchmark")
             else:
-                st.info("📭 Aucun benchmark dans l'historique")
+                st.info("No benchmarks in history yet. Run your first benchmark from the Home page!")
         else:
-            st.error("Erreur lors de la récupération de l'historique")
+            st.error("Error loading history from backend")
     except Exception as e:
-        st.error(f"Erreur connexion backend: {str(e)}")
-    
-    # Section résultats (partagée entre les pages)
-    if st.session_state.get('show_results') and st.session_state.get('results'):
-        st.markdown("---")
-        st.header("📊 Results")
-        # Même code d'affichage des résultats que dans Accueil...
-        results = st.session_state.results
-        # [Code d'affichage des métriques et graphiques identique à la section précédente]
+        st.error(f"Backend connection error: {str(e)}")
