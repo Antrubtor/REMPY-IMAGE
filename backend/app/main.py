@@ -1,4 +1,4 @@
-import io, time, hashlib
+import io, time, hashlib, base64
 
 import numpy as np
 
@@ -15,6 +15,15 @@ fake_image = np.zeros((2,2), dtype=np.uint8)
 fake_mask = np.zeros((2,2), dtype=np.uint8)
 
 npropagation(fake_image, fake_mask)
+
+def encode_array(arr: np.ndarray) -> str:
+    out = io.BytesIO()
+    np.save(out, arr)
+    return base64.b64encode(out.getvalue()).decode('utf-8')
+
+def decode_array(b64str: str) -> np.ndarray:
+    b = base64.b64decode(b64str)
+    return np.load(io.BytesIO(b))
 
 @app.post("/benchmarks/run")
 async def run_benchmark(nb_tests: int,
@@ -43,7 +52,7 @@ async def run_benchmark(nb_tests: int,
         end_time = time.time()
 
         if i == 0:
-            image_result = p.tolist()
+            image_result = p
 
         nstart_time = time.time()
         npropagation(image_data, mask_data)
@@ -54,8 +63,8 @@ async def run_benchmark(nb_tests: int,
             "numba_time": nend_time - nstart_time
         })
 
-    save_data = {"benchmarks": benchmark_times, "image_result": image_result}
-    if not save_benchmark(combined_hash, image_data.tolist(), mask_data.tolist(), save_data):
+    save_data = {"benchmarks": benchmark_times, "image_result": encode_array(image_result) if image_result is not None else ""}
+    if not save_benchmark(combined_hash, encode_array(image_data), encode_array(mask_data), save_data):
         raise HTTPException(status_code=500, detail="Erreur lors de la sauvegarde du benchmark")
 
     benchmark_id = get_benchmark_id_with_hash_db(combined_hash)
@@ -65,7 +74,7 @@ async def run_benchmark(nb_tests: int,
 
     return {"benchmarks": [{
         "id": benchmark.get("id"),
-        "image_result": benchmark.get("image_result", []),
+        "image_result": benchmark.get("image_result", ""),
         "benchmark_times": benchmark.get("benchmark_times", [])
     }]}
 
@@ -79,8 +88,8 @@ async def run_benchmark_by_id(benchmark_id: int, nb_tests: int = 10):
     if existing is None:
         raise HTTPException(status_code=404, detail="Benchmark not found")
 
-    image_data = np.array(existing["image"])
-    mask_data = np.array(existing["mask"])
+    image_data = decode_array(existing["image"])
+    mask_data = decode_array(existing["mask"])
     image_hash = existing["image_hash"]
 
     benchmark_times = []
@@ -91,7 +100,7 @@ async def run_benchmark_by_id(benchmark_id: int, nb_tests: int = 10):
         end_time = time.time()
 
         if i == 0:
-            image_result = p.tolist()
+            image_result = p
 
         nstart_time = time.time()
         npropagation(image_data, mask_data)
@@ -102,8 +111,8 @@ async def run_benchmark_by_id(benchmark_id: int, nb_tests: int = 10):
             "numba_time": nend_time - nstart_time
         })
 
-    save_data = {"benchmarks": benchmark_times, "image_result": image_result}
-    if not save_benchmark(image_hash, image_data.tolist(), mask_data.tolist(), save_data):
+    save_data = {"benchmarks": benchmark_times, "image_result": encode_array(image_result) if image_result is not None else ""}
+    if not save_benchmark(image_hash, existing["image"], existing["mask"], save_data):
         raise HTTPException(status_code=500, detail="Erreur lors de la sauvegarde du benchmark")
 
     updated = get_benchmark(benchmark_id)
@@ -112,7 +121,7 @@ async def run_benchmark_by_id(benchmark_id: int, nb_tests: int = 10):
 
     return {"benchmarks": [{
         "id": updated.get("id"),
-        "image_result": updated.get("image_result", []),
+        "image_result": updated.get("image_result", ""),
         "benchmark_times": updated.get("benchmark_times", [])
     }]}
 
@@ -147,7 +156,7 @@ async def get_benchmark_id(id: int):
 
     return {"benchmarks": [{
         "id": benchmark.get("id"),
-        "image_result": benchmark.get("image_result", []),
+        "image_result": benchmark.get("image_result", ""),
         "benchmark_times": benchmark.get("benchmark_times", [])
     }]}
 
@@ -163,9 +172,9 @@ async def get_benchmarks():
     return {"benchmarks": [{
         "id": b.get("id"),
         "image_hash": b.get("image_hash", ""),
-        "image": b.get("image", []),
-        "mask": b.get("mask", []),
-        "image_result": b.get("image_result", []),
+        "image": b.get("image", ""),
+        "mask": b.get("mask", ""),
+        "image_result": b.get("image_result", ""),
         "benchmark_times": b.get("benchmark_times", [])
     } for b in benchmarks["benchmarks"]]}
 

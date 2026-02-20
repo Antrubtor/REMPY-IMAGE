@@ -5,6 +5,13 @@ import numpy as np
 from PIL import Image
 from benchmark import plot_bar, plot_scatter, plot_image
 import io
+import base64
+
+def decode_array(b64str: str) -> np.ndarray:
+    if not isinstance(b64str, str) or not b64str:
+        return np.array([])
+    b = base64.b64decode(b64str)
+    return np.load(io.BytesIO(b))
 
 st.set_page_config(page_title="REMPY-IMAGE", layout="wide")
 BACKEND_URL = "http://backend:8000"
@@ -221,10 +228,10 @@ elif st.session_state.page == "Historique":
                             # Render image and mask thumbnails side by side
                             col_img, col_mask = st.columns(2)
                             with col_img:
-                                img_data = benchmark.get("image", [])
+                                img_data = benchmark.get("image", "")
                                 if img_data:
                                     try:
-                                        img_array = np.array(img_data, dtype=np.float64)
+                                        img_array = decode_array(img_data)
                                         if img_array.max() > 0:
                                             img_array = (img_array / img_array.max() * 255).astype(np.uint8)
                                         else:
@@ -236,10 +243,10 @@ elif st.session_state.page == "Historique":
                                 else:
                                     st.caption("No image")
                             with col_mask:
-                                mask_data = benchmark.get("mask", [])
+                                mask_data = benchmark.get("mask", "")
                                 if mask_data:
                                     try:
-                                        mask_array = np.array(mask_data, dtype=np.float64)
+                                        mask_array = decode_array(mask_data)
                                         if mask_array.max() > 0:
                                             mask_array = (mask_array / mask_array.max() * 255).astype(np.uint8)
                                         else:
