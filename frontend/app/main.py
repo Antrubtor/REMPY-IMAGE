@@ -24,10 +24,16 @@ if 'page' not in st.session_state:
 st.sidebar.title("Navigation")
 if st.sidebar.button("Home", use_container_width=True):
     st.session_state.page = "Accueil"
+    st.session_state.benchmark_exists = False
+    st.session_state.show_results = False
+    st.session_state.results = None
     st.rerun()
 
 if st.sidebar.button("History", use_container_width=True):
     st.session_state.page = "Historique"
+    st.session_state.benchmark_exists = False
+    st.session_state.show_results = False
+    st.session_state.results = None
     st.rerun()
 
 # State initialization
@@ -42,14 +48,31 @@ if 'show_results' not in st.session_state:
 if 'loading' not in st.session_state:
     st.session_state.loading = False
 
+def reset_benchmark_state():
+    st.session_state.benchmark_exists = False
+    st.session_state.show_results = False
+    st.session_state.results = None
+
 # Home Page
 if st.session_state.page == "Accueil":
     st.title("REMPY-IMAGE")
     st.markdown("Geodesic Distance Transform")
     
     st.sidebar.header("Uploads")
-    image_file = st.sidebar.file_uploader("Image (JPEG/PNG)", type=['jpeg', 'png'], key="image_uploader")
-    mask_file = st.sidebar.file_uploader("Mask (PNG)", type=['png'], key="mask_uploader")
+    image_file = st.sidebar.file_uploader("Image (JPEG/PNG)", type=['jpeg', 'png'], key="image_uploader", on_change=reset_benchmark_state)
+    mask_file = st.sidebar.file_uploader("Mask (PNG)", type=['png'], key="mask_uploader", on_change=reset_benchmark_state)
+    
+    if st.session_state.benchmark_exists:
+        if st.sidebar.button("📊 View existing results", use_container_width=True):
+            st.session_state.loading = True
+            st.session_state._action = "view"
+            st.session_state.show_results = False
+            st.rerun()
+        if not image_file or not mask_file:
+            st.sidebar.info(f"Ready to add runs to Benchmark #{st.session_state.get('benchmark_id')}. Choose the number of tests and click Start.")
+        else:
+            st.sidebar.info("A benchmark already exists for these images. Starting a new benchmark will add the runs to the existing ones.")
+        
     nb_tests = st.sidebar.number_input("Tests", min_value=1, value=10, key="nb_tests")
     
     if image_file:
@@ -65,7 +88,12 @@ if st.session_state.page == "Accueil":
         st.sidebar.image(mask_bytes, caption="Mask", width=200)
     
     if st.sidebar.button("Start Benchmark", type="primary"):
-        if image_file and mask_file:
+        if st.session_state.benchmark_exists:
+            st.session_state.loading = True
+            st.session_state._action = "add_runs"
+            st.session_state.show_results = False
+            st.rerun()
+        elif image_file and mask_file:
             st.session_state.show_results = False
             st.session_state.benchmark_exists = False
             
@@ -96,23 +124,8 @@ if st.session_state.page == "Accueil":
                 else:
                     st.error(f"Backend error: {resp_benchmark.text}")
     
-    if st.session_state.benchmark_exists:
-        st.markdown("---")
-        st.header("Existing Benchmark Found")
-        
-        if st.session_state.loading:
-            st.spinner("Loading...")
-        else:
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("View existing results"):
-                    st.session_state.loading = True
-                    st.rerun()
-            with col2:
-                if st.button("Add more runs"):
-                    st.session_state.loading = True
-                    st.session_state._action = "add_runs"
-                    st.rerun()
+    # Middle buttons section removed as requested
+
     
     # Handle deferred loading actions
     if st.session_state.loading and st.session_state.benchmark_exists:
