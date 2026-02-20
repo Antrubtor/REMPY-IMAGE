@@ -113,16 +113,21 @@ if st.session_state.page == "Accueil":
         
         if action == "add_runs":
             with st.spinner("Adding runs..."):
-                image_bytes = image_file.getvalue()
-                mask_bytes = mask_file.getvalue()
-                files = {
-                    'image': ('image.jpg', image_bytes, 'image/jpeg'),
-                    'mask': ('mask.png', mask_bytes, 'image/png')
-                }
-                resp_benchmark = requests.post(
-                    f"{BACKEND_URL}/benchmarks/run?nb_tests={nb_tests}",
-                    files=files
-                )
+                if image_file and mask_file:
+                    image_bytes = image_file.getvalue()
+                    mask_bytes = mask_file.getvalue()
+                    files = {
+                        'image': ('image.jpg', image_bytes, 'image/jpeg'),
+                        'mask': ('mask.png', mask_bytes, 'image/png')
+                    }
+                    resp_benchmark = requests.post(
+                        f"{BACKEND_URL}/benchmarks/run?nb_tests={nb_tests}",
+                        files=files
+                    )
+                else:
+                    resp_benchmark = requests.post(
+                        f"{BACKEND_URL}/benchmarks/run_by_id?benchmark_id={st.session_state.benchmark_id}&nb_tests={nb_tests}"
+                    )
             if resp_benchmark.status_code == 200:
                 st.session_state.results = resp_benchmark.json()
                 st.session_state.show_results = True

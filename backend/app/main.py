@@ -69,6 +69,53 @@ async def run_benchmark(nb_tests: int,
         "benchmark_times": benchmark.get("benchmark_times", [])
     }]}
 
+@app.post("/benchmarks/run_by_id")
+async def run_benchmark_by_id(benchmark_id: int, nb_tests: int = 10):
+    """
+    Run nb_tests benchmark en utilisant l'image et le masque stockés en DB pour le benchmark_id donné.
+    Utilisé quand on vient de l'historique (pas d'upload de fichiers).
+    """
+    existing = get_benchmark(benchmark_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Benchmark not found")
+
+    image_data = np.array(existing["image"])
+    mask_data = np.array(existing["mask"])
+    image_hash = existing["image_hash"]
+
+    benchmark_times = []
+    image_result = None
+    for i in range(nb_tests):
+        start_time = time.time()
+        p = propagation(image_data, mask_data)
+        end_time = time.time()
+
+        if i == 0:
+            image_result = p.tolist()
+
+        nstart_time = time.time()
+        npropagation(image_data, mask_data)
+        nend_time = time.time()
+
+        benchmark_times.append({
+            "python_time": end_time - start_time,
+            "numba_time": nend_time - nstart_time
+        })
+
+    save_data = {"benchmarks": benchmark_times, "image_result": image_result}
+    if not save_benchmark(image_hash, image_data.tolist(), mask_data.tolist(), save_data):
+        raise HTTPException(status_code=500, detail="Erreur lors de la sauvegarde du benchmark")
+
+    updated = get_benchmark(benchmark_id)
+    if updated is None:
+        raise HTTPException(status_code=500, detail="Erreur lors de la récupération du benchmark")
+
+    return {"benchmarks": [{
+        "id": updated.get("id"),
+        "image_result": updated.get("image_result", []),
+        "benchmark_times": updated.get("benchmark_times", [])
+    }]}
+
 @app.post("/benchmark/hash")
 async def get_benchmark_id_with_hash(image: UploadFile = File(...),
                             mask: UploadFile = File()):
