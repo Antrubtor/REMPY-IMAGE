@@ -80,8 +80,8 @@ if st.session_state.page == "Accueil":
     st.markdown("Geodesic Distance Transform")
     
     st.sidebar.header("Uploads")
-    image_file = st.sidebar.file_uploader("Image (JPEG/PNG)", type=['jpeg', 'png'], key="image_uploader", on_change=reset_benchmark_state)
-    mask_file = st.sidebar.file_uploader("Mask (PNG)", type=['png'], key="mask_uploader", on_change=reset_benchmark_state)
+    image_file = st.sidebar.file_uploader("Image (JPEG/PNG)", type=['jpeg', 'jpg', 'png'], key="image_uploader", on_change=reset_benchmark_state)
+    mask_file = st.sidebar.file_uploader("Mask (JPEG/PNG)", type=['jpeg', 'jpg', 'png'], key="mask_uploader", on_change=reset_benchmark_state)
     
     if st.session_state.benchmark_exists:
         if st.sidebar.button("📊 View existing results", use_container_width=True):
