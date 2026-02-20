@@ -105,7 +105,13 @@ if st.session_state.page == "Accueil":
             st.session_state.benchmark_exists = False
             
             image_bytes = image_file.getvalue()
-            mask_bytes = mask_file.getvalue()
+            
+            # Process mask the same way as image to ensure Grayscale ('L')
+            mask_pil = Image.open(io.BytesIO(mask_file.getvalue())).convert('L')
+            mask_proc_io = io.BytesIO()
+            mask_pil.save(mask_proc_io, format='PNG')
+            mask_bytes = mask_proc_io.getvalue()
+            
             files = {
                 'image': ('image.jpg', image_bytes, 'image/jpeg'),
                 'mask': ('mask.png', mask_bytes, 'image/png')
@@ -142,7 +148,13 @@ if st.session_state.page == "Accueil":
             with st.spinner("Adding runs..."):
                 if image_file and mask_file:
                     image_bytes = image_file.getvalue()
-                    mask_bytes = mask_file.getvalue()
+                    
+                    # Process mask the same way as image to ensure Grayscale ('L')
+                    mask_pil = Image.open(io.BytesIO(mask_file.getvalue())).convert('L')
+                    mask_proc_io = io.BytesIO()
+                    mask_pil.save(mask_proc_io, format='PNG')
+                    mask_bytes = mask_proc_io.getvalue()
+                    
                     files = {
                         'image': ('image.jpg', image_bytes, 'image/jpeg'),
                         'mask': ('mask.png', mask_bytes, 'image/png')
@@ -409,20 +421,27 @@ elif st.session_state.page == "Dossier":
             # Convert to Grayscale JPEG before sending, same as Home page
             try:
                 img_bytes = img_file.getvalue()
-                mask_bytes = mask_file.getvalue()
+                mask_bytes_raw = mask_file.getvalue()
                 
                 # Image processing
                 image_pil = Image.open(io.BytesIO(img_bytes)).convert('L')
                 img_proc_io = io.BytesIO()
                 image_pil.save(img_proc_io, format='JPEG', quality=95)
                 processed_img_bytes = img_proc_io.getvalue()
+                
+                # Mask processing
+                mask_pil = Image.open(io.BytesIO(mask_bytes_raw)).convert('L')
+                mask_proc_io = io.BytesIO()
+                mask_pil.save(mask_proc_io, format='PNG')
+                processed_mask_bytes = mask_proc_io.getvalue()
+                
             except Exception as e:
                 st.error(f"Failed to process image {img_name}: {e}")
                 continue
             
             files = {
                 'image': ('image.jpg', processed_img_bytes, 'image/jpeg'),
-                'mask': ('mask.png', mask_bytes, 'image/png')
+                'mask': ('mask.png', processed_mask_bytes, 'image/png')
             }
             
             with st.spinner(f"Running benchmark {i+1} of {len(valid_pairs)}..."):
@@ -436,7 +455,7 @@ elif st.session_state.page == "Dossier":
                 else:
                     files_new = {
                         'image': ('image.jpg', processed_img_bytes, 'image/jpeg'),
-                        'mask': ('mask.png', mask_bytes, 'image/png')
+                        'mask': ('mask.png', processed_mask_bytes, 'image/png')
                     }
                     resp_benchmark = requests.post(
                         f"{BACKEND_URL}/benchmarks/run?nb_tests={nb_tests}",
