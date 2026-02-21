@@ -21,9 +21,9 @@ def create_table() -> None:
                     CREATE TABLE IF NOT EXISTS benchmarks (
                         id SERIAL PRIMARY KEY,
                         image_hash VARCHAR(64) UNIQUE NOT NULL,
-                        image DOUBLE PRECISION[][] NOT NULL,
-                        mask DOUBLE PRECISION[][] NOT NULL,
-                        image_result DOUBLE PRECISION[][] NOT NULL
+                        image TEXT NOT NULL,
+                        mask TEXT NOT NULL,
+                        image_result TEXT NOT NULL
                     )
                     """)
         cur.execute("""
@@ -38,7 +38,7 @@ def create_table() -> None:
     except Exception as error:
         print("Erreur lors de la création de la table", error)
 
-def save_benchmark(image_hash: str, image: list, mask: list, results: dict) -> bool:
+def save_benchmark(image_hash: str, image: str, mask: str, results: dict) -> bool:
     conn, cur = connect()
     try:
         benchmark_id = get_benchmark_id_with_hash_db(image_hash)
@@ -75,7 +75,6 @@ def get_benchmark(id: int) -> tuple[Any, ...] | None:
         benchmark_infos = cur.fetchone()
         if not benchmark_infos:
             return None
-        print(benchmark_infos)
         cur.execute("SELECT python_time, numba_time FROM benchmarks_times WHERE benchmark_id = %s", (id,))
         benchmark_infos["benchmark_times"] = cur.fetchall()
         return benchmark_infos

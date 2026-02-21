@@ -3,6 +3,14 @@ import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
 import streamlit as st
+import base64
+import io
+
+def decode_array(b64str: str) -> np.ndarray:
+    if not isinstance(b64str, str) or not b64str:
+        return np.array([])
+    b = base64.b64decode(b64str)
+    return np.load(io.BytesIO(b))
 
 
 def plot_bar(benchmarks: str) -> go.Figure:
@@ -82,10 +90,10 @@ def plot_image(image_json: str) -> go.Figure:
         data = json.loads(image_json)
         
         # Cherche image_result dans benchmarks[0]
-        image_result = data.get("benchmarks", [{}])[0].get("image_result", [])
+        image_result_str = data.get("benchmarks", [{}])[0].get("image_result", "")
         
-        if image_result and len(image_result) > 0:
-            image = np.array(image_result)
+        if image_result_str:
+            image = decode_array(image_result_str)
             
             # Auto-reshape si 1D
             if image.ndim == 1:
