@@ -41,8 +41,7 @@ ENTRYPOINT []
 # Use the non-root user to run our application
 USER nonroot
 
-# Run the Dash application
-#CMD ["uv", "run", "python", "app/main.py"]
+# Run the Streamlit application
 CMD ["streamlit", "run", "app/main.py", \
      "--server.port=8050", \
      "--server.address=0.0.0.0", \

@@ -16,7 +16,6 @@ def decode_array(b64str: str) -> np.ndarray:
 def plot_bar(benchmarks: str) -> go.Figure:
     data = json.loads(benchmarks).get("benchmarks", [])
 
-    # Flatten tous benchmarks_times de tous items
     all_times = []
     for benchmark in data:
         for i, time_data in enumerate(benchmark.get("benchmark_times", [])):
@@ -29,7 +28,6 @@ def plot_bar(benchmarks: str) -> go.Figure:
     if not all_times:
         return go.Figure().add_annotation(text="Aucun benchmark")
     
-    # Prends derniers 10
     plot_data = sorted(all_times, key=lambda x: x["id"])[-10:]
     
     ids = [t["id"] for t in plot_data]
@@ -53,7 +51,6 @@ def plot_bar(benchmarks: str) -> go.Figure:
 def plot_scatter(benchmarks: str) -> go.Figure:
     data = json.loads(benchmarks).get("benchmarks", [])
 
-    # Même flatten
     all_times = []
     for benchmark in data:
         for i, time_data in enumerate(benchmark.get("benchmark_times", [])):
@@ -89,13 +86,11 @@ def plot_image(image_json: str) -> go.Figure:
     try:
         data = json.loads(image_json)
         
-        # Cherche image_result dans benchmarks[0]
         image_result_str = data.get("benchmarks", [{}])[0].get("image_result", "")
         
         if image_result_str:
             image = decode_array(image_result_str)
             
-            # Auto-reshape si 1D
             if image.ndim == 1:
                 size = int(np.sqrt(len(image)))
                 if size * size == len(image):
@@ -105,7 +100,7 @@ def plot_image(image_json: str) -> go.Figure:
                 image,
                 color_continuous_scale='inferno',
                 range_color=[image.min(), image.max()],
-                title=f"Distance Map ({image.shape})"
+                title=f"Distance Map, shape : {image.shape}"
             )
             fig.update_layout(coloraxis_colorbar=dict(title="Distance"))
             return fig

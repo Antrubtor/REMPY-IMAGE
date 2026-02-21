@@ -30,21 +30,12 @@ def optimize_image_bytes(file_bytes: bytes, target_format: str = 'JPEG') -> byte
 st.set_page_config(page_title="REMPY-IMAGE", layout="wide")
 BACKEND_URL = "http://backend:8000"
 
-# Global navigation state
 if 'page' not in st.session_state:
     st.session_state.page = "Accueil"
 
-# Sidebar Navigation
 st.sidebar.title("Navigation")
 if st.sidebar.button("Home", use_container_width=True):
     st.session_state.page = "Accueil"
-    st.session_state.benchmark_exists = False
-    st.session_state.show_results = False
-    st.session_state.results = None
-    st.rerun()
-
-if st.sidebar.button("History", use_container_width=True):
-    st.session_state.page = "Historique"
     st.session_state.benchmark_exists = False
     st.session_state.show_results = False
     st.session_state.results = None
@@ -57,7 +48,13 @@ if st.sidebar.button("Directory", use_container_width=True):
     st.session_state.results = None
     st.rerun()
 
-# State initialization
+if st.sidebar.button("History", use_container_width=True):
+    st.session_state.page = "Historique"
+    st.session_state.benchmark_exists = False
+    st.session_state.show_results = False
+    st.session_state.results = None
+    st.rerun()
+
 if 'benchmark_exists' not in st.session_state:
     st.session_state.benchmark_exists = False
 if 'benchmark_id' not in st.session_state:
@@ -74,7 +71,6 @@ def reset_benchmark_state():
     st.session_state.show_results = False
     st.session_state.results = None
 
-# Home Page
 if st.session_state.page == "Accueil":
     st.title("REMPY-IMAGE")
     st.markdown("Geodesic Distance Transform")
@@ -84,15 +80,15 @@ if st.session_state.page == "Accueil":
     mask_file = st.sidebar.file_uploader("Mask (JPEG/PNG)", type=['jpeg', 'jpg', 'png'], key="mask_uploader", on_change=reset_benchmark_state)
     
     if st.session_state.benchmark_exists:
-        if st.sidebar.button("📊 View existing results", use_container_width=True):
+        if st.sidebar.button("View existing results", use_container_width=True):
             st.session_state.loading = True
             st.session_state._action = "view"
             st.session_state.show_results = False
             st.rerun()
         if not image_file or not mask_file:
-            st.sidebar.info(f"Ready to add runs to Benchmark #{st.session_state.get('benchmark_id')}. Choose the number of tests and click Start.")
+            st.sidebar.info(f"Ready to add runs to Benchmark #{st.session_state.get('benchmark_id')}. Choose the number of tests and click on 'Start benchmark'.")
         else:
-            st.sidebar.info("A benchmark already exists for these images. Starting a new benchmark will add the runs to the existing ones.")
+            st.sidebar.info("A benchmark already exists for these images. You can either click on 'View existing results' or select 'Start benchmark' to add more runs.")
         
     nb_tests = st.sidebar.number_input("Tests", min_value=1, value=10, key="nb_tests")
     
@@ -150,10 +146,6 @@ if st.session_state.page == "Accueil":
                 else:
                     st.error(f"Backend error: {resp_benchmark.text}")
     
-    # Middle buttons section removed as requested
-
-    
-    # Handle deferred loading actions
     if st.session_state.loading and st.session_state.benchmark_exists:
         action = st.session_state.get('_action', 'view')
         
@@ -195,7 +187,6 @@ if st.session_state.page == "Accueil":
                 st.session_state._action = None
                 st.rerun()
     
-    # Results display
     if st.session_state.get('show_results') and st.session_state.get('results'):
         st.markdown("---")
         st.header("Results")
@@ -216,8 +207,8 @@ if st.session_state.page == "Accueil":
                     numba_times.append(benchmark.get('numba_time', 0))
             
             speedup_mean = np.mean(python_times) / np.mean(numba_times)
-            speedup_min = np.min(python_times) / np.max(numba_times)
-            speedup_max = np.max(python_times) / np.min(numba_times)
+            speedup_min = np.min(python_times) / np.min(numba_times)
+            speedup_max = np.max(python_times) / np.max(numba_times)
             speedup_std = np.std(np.array(python_times) / np.array(numba_times))
             
             col1, col2, col3 = st.columns(3)
@@ -244,10 +235,9 @@ if st.session_state.page == "Accueil":
         else:
             st.warning("No benchmark data")
 
-# History Page
 elif st.session_state.page == "Historique":
     st.title("Benchmark History")
-    st.markdown("All image + mask combinations previously benchmarked")
+    st.markdown("All combinations of images and masks already benchmarked")
 
     try:
         with st.spinner("Loading history..."):
@@ -267,7 +257,6 @@ elif st.session_state.page == "Historique":
                         with st.container(border=True):
                             st.subheader(f"Benchmark #{benchmark_id}")
 
-                            # Render image and mask thumbnails side by side
                             col_img, col_mask = st.columns(2)
                             with col_img:
                                 img_data = benchmark.get("image", "")
@@ -300,10 +289,8 @@ elif st.session_state.page == "Historique":
                                 else:
                                     st.caption("No mask")
 
-                            # Hash label
-                            st.caption(f"Hash {hash_label}")
+                            st.caption(f"Hash value : {hash_label}")
 
-                            # Action buttons
                             col_btn1, col_btn2 = st.columns(2)
                             with col_btn1:
                                 if st.button("View Results", key=f"view_{benchmark_id}", use_container_width=True):
@@ -325,7 +312,6 @@ elif st.session_state.page == "Historique":
                                     st.session_state.show_results = False
                                     st.rerun()
 
-                            # Delete button
                             if st.button("Delete", key=f"delete_{benchmark_id}", use_container_width=True):
                                 with st.spinner("Deleting benchmark..."):
                                     resp_delete = requests.delete(f"{BACKEND_URL}/benchmark?id={benchmark_id}")
@@ -334,31 +320,27 @@ elif st.session_state.page == "Historique":
                                 else:
                                     st.error("Failed to delete benchmark")
             else:
-                st.info("No benchmarks in history yet. Run your first benchmark from the Home page!")
+                st.info("No benchmarks in history yet.")
         else:
             st.error("Error loading history from backend")
     except Exception as e:
         st.error(f"Backend connection error: {str(e)}")
 
-# Directory Page
 elif st.session_state.page == "Dossier":
-    st.title("Batch Benchmark (Directory)")
-    st.markdown("Upload multiple images and masks, pair them in the table below, and run batch benchmarks.")
+    st.title("Directory Benchmark")
     
-    # Initialize the row configuration in state
     if "dir_rows" not in st.session_state:
         st.session_state.dir_rows = [{"id": 0, "image": None, "mask": None, "nb_tests": 10}]
         st.session_state.next_row_id = 1
         
-    uploaded_files = st.file_uploader("Upload directory / multiple files (JPEG/PNG)", type=['jpeg', 'jpg', 'png'], accept_multiple_files=True, key="dir_uploader")
+    uploaded_files = st.file_uploader("Drag and drop or upload directory / files (JPEG/PNG) with the button.", type=['jpeg', 'jpg', 'png'], accept_multiple_files=True, key="dir_uploader")
     
     file_names = [""] + [f.name for f in uploaded_files] if uploaded_files else [""]
     file_map = {f.name: f for f in uploaded_files} if uploaded_files else {}
     
-    st.header("Image & Mask Pairs Table")
+    st.header("Image & Mask Selector")
     st.markdown("---")
         
-    # Render Dynamic Table
     for i, row in enumerate(st.session_state.dir_rows):
         col_img, col_mask, col_tests, col_del = st.columns([3, 3, 2, 1])
         
@@ -396,25 +378,24 @@ elif st.session_state.page == "Dossier":
         with col_del:
             st.write("")
             st.write("")
-            if st.button("🗑️", key=f"del_sel_{row['id']}"):
+            if st.button("❌", key=f"del_sel_{row['id']}"):
                 st.session_state.dir_rows.pop(i)
                 st.rerun()
                 
         st.markdown("---")
         
-    if st.button("➕ Add Pair"):
+    if st.button("Add Pair"):
         st.session_state.dir_rows.append({"id": st.session_state.next_row_id, "image": None, "mask": None, "nb_tests": 10})
         st.session_state.next_row_id += 1
         st.rerun()
 
-    # Sidebar Summary
-    st.sidebar.header("Batch Configuration")
+    st.sidebar.header("Configurations")
     
     valid_pairs = [r for r in st.session_state.dir_rows if r["image"] and r["mask"]]
     st.sidebar.metric("Benchmarks to run", len(valid_pairs))
     
     st.header("Execution")
-    if st.button("🚀 Start Batch Benchmarks", type="primary", disabled=len(valid_pairs)==0):
+    if st.button("Start Benchmarks", type="primary", disabled=len(valid_pairs)==0):
         st.markdown("---")
         st.header("Batch Results")
         
@@ -428,18 +409,15 @@ elif st.session_state.page == "Dossier":
             img_file = file_map[img_name]
             mask_file = file_map[mask_name]
             
-            # Convert to Grayscale JPEG before sending, same as Home page
             try:
                 img_bytes = img_file.getvalue()
                 mask_bytes_raw = mask_file.getvalue()
                 
-                # Image processing
                 image_pil = Image.open(io.BytesIO(img_bytes)).convert('L')
                 img_proc_io = io.BytesIO()
                 image_pil.save(img_proc_io, format='JPEG', quality=95)
                 processed_img_bytes = img_proc_io.getvalue()
                 
-                # Mask processing
                 mask_pil = Image.open(io.BytesIO(mask_bytes_raw)).convert('L')
                 mask_proc_io = io.BytesIO()
                 mask_pil.save(mask_proc_io, format='PNG')
@@ -489,20 +467,23 @@ elif st.session_state.page == "Dossier":
                             numba_times.append(benchmark.get('numba_time', 0))
                     
                     speedup_mean = np.mean(python_times) / np.mean(numba_times)
-                    speedup_min = np.min(python_times) / np.max(numba_times)
-                    speedup_max = np.max(python_times) / np.min(numba_times)
+                    speedup_min = np.min(python_times) / np.min(numba_times)
+                    speedup_max = np.max(python_times) / np.max(numba_times)
                     speedup_std = np.std(np.array(python_times) / np.array(numba_times))
                     
                     c1, c2, c3 = st.columns(3)
                     with c1:
                         st.metric("Python Mean", f"{np.mean(python_times):.3f}s")
                         st.metric("Python Min/Max", f"{np.min(python_times):.3f}s / {np.max(python_times):.3f}s")
+                        st.metric("Python Std", f"{np.std(python_times):.3f}s")
                     with c2:
                         st.metric("Numba Mean", f"{np.mean(numba_times):.3f}s")
                         st.metric("Numba Min/Max", f"{np.min(numba_times):.3f}s / {np.max(numba_times):.3f}s")
+                        st.metric("Numba Std", f"{np.std(numba_times):.3f}s")
                     with c3:
                         st.metric("Speedup Mean", f"{speedup_mean:.2f}x")
                         st.metric("Speedup Min/Max", f"{speedup_min:.2f}x - {speedup_max:.2f}x")
+                        st.metric("Speedup Std", f"{speedup_std:.3f}s")
                         
                     c1, c2, c3 = st.columns(3)
                     with c1:
